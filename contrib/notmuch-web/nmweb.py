@@ -23,22 +23,23 @@ class index:
 
 class search:
   def GET(self,terms):
+    web.header('Content-type', 'text/html')
+    web.header('Transfer-Encoding', 'chunked')
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()
-    prefix = '<html><head><title>Brian\'s mail: search results</title></head><body>'
-    middle = '<h1>%s</h1>' % terms
-    suffix = '</body></html>'
+    yield '<html><head><title>Brian\'s mail: search results</title></head><body>'
+    yield '<h1>%s</h1>' % terms
     for t in ts:
       subj = t.get_subject()
       auths = t.get_authors()
       start,end = t.get_oldest_date(), t.get_newest_date()
       msgs = t.get_toplevel_messages()
-      middle += '<h2>%s</h2>' % subj # FIXME escaping
-      middle += '<p><i>%s</i></p>' % auths
-      middle += '<p><b>%s&ndash;%s</b></p>' % (start,end)
-      middle += show_msgs(msgs)
-    return prefix + middle + suffix
+      yield '<h2>%s</h2>' % subj # FIXME escaping
+      yield '<p><i>%s</i></p>' % auths
+      yield '<p><b>%s&ndash;%s</b></p>' % (start,end)
+      yield show_msgs(msgs)
+    yield '</body></html>'
 
 def show_msgs(msgs):
   r = '<ul>'
