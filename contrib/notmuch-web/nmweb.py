@@ -20,7 +20,7 @@ db = Database()
 
 class index:
   def GET(self):
-    prefix = '<html><head><title>Brian\'s mail</title></head><body><ul>'
+    prefix = '<html><head><title>Notmuch mail</title></head><body><ul>'
     suffix = '</ul></body></html>'
     tags = db.get_all_tags()
     middle = ''
@@ -35,7 +35,7 @@ class search:
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()
-    yield '<html><head><title>Brian\'s mail: search results</title></head><body>'
+    yield '<html><head><title>Notmuch mail: search results</title></head><body>'
     yield '<h1>%s</h1>' % terms
     for t in ts:
       subj = t.get_subject()
