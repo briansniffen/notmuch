@@ -66,6 +66,15 @@ def show_msgs(msgs):
   r += '</ul>'
   return r
 
+# As email.message.walk, but showing close tags as well
+def mywalk(self):
+    yield self
+    if self.is_multipart():
+        for subpart in self.get_payload():
+            for subsubpart in mywalk(subpart):
+                yield subsubpart
+        yield 'close-div'
+
 class show:
   def GET(self,mid):
     web.header('Content-type', 'text/html')
@@ -82,8 +91,10 @@ class show:
     yield '<hr>'
     msg = MaildirMessage(open(m.get_filename()))
     counter = 0
-    for part in msg.walk():
-      if part.get_content_maintype() == 'multipart': continue
+    for part in mywalk(msg):
+      if part=='close-div': yield '</div>'
+      elif part.get_content_maintype() == 'multipart': 
+        yield '<div class="multipart-%s">' % part.get_content_subtype()
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
           yield '<pre>'
