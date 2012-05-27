@@ -5,6 +5,3 @@ add a search box on the front page, including jquery calendars for date ranges
 review escaping and safety handling mail from Bad People
 
 replace cid: links with links to cache directory
-
-fix handling of from addresses
-

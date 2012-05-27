@@ -7,6 +7,7 @@ from datetime import datetime
 from mailbox import MaildirMessage
 import os
 import mimetypes
+import email
 
 cachedir = "static" # special for webpy server; changeable if using your own
 
@@ -52,6 +53,10 @@ class search:
       yield show_msgs(msgs)
     yield '</body></html>'
 
+def mailto_addrs(frm):
+    frm = email.utils.getaddresses([frm])
+    return ','.join(['<a href="mailto:%s">%s</a> ' % ((l,p) if p else (l,l)) for (p,l) in frm])
+
 def show_msgs(msgs):
   r = '<ul>'
   for msg in msgs:
@@ -59,6 +64,7 @@ def show_msgs(msgs):
     flag = msg.get_flag(Message.FLAG.MATCH)
     if flag: red='red'
     frm = msg.get_header('From')
+    frm = mailto_addrs(frm)
     subj = msg.get_header('Subject')
     lnk = urllib.quote_plus(msg.get_message_id())
     rs = show_msgs(msg.get_replies())
@@ -83,11 +89,14 @@ class show:
     m = list(q.search_messages())[0]
     subj = m.get_header('Subject')
     yield '<html><head><title>Brian\'s mail: %s</title></head><body>' % subj
-    headers = ['Subject', 'To', 'Cc', 'From', 'Date']
-    # FIXME parse to/cc/from with email.utils.parseaddr
+    headers = ['Subject', 'Date']
+    addr_headers = ['To', 'Cc', 'From']
     # FIXME add reply-all link with email.urils.getaddresses
+    # FIXME add forward link using mailto with body parameter?
     for header in headers:
       yield '<p><b>%s:</b>%s</p>' % (header,m.get_header(header))
+    for header in addr_headers:
+      yield '<p><b>%s:</b>%s</p>' % (header, mailto_addrs(m.get_header(header)))
     yield '<hr>'
     msg = MaildirMessage(open(m.get_filename()))
     counter = 0
