@@ -1,0 +1,15 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+<title>Notmuch webmail</title>
+</head><body>
+<h2>Notmuch webmail</h2>
+<form>
+<input name="search">
+</form>
+<h2>Common tags</h2>
+<ul>
+{% for tag in tags %}
+  <li><a href="/search/tag:{{ tag }}">{{ tag }}</a></li>
+{% endfor %}
+</ul></body></html>

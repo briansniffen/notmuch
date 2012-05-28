@@ -8,8 +8,13 @@ from mailbox import MaildirMessage
 import os
 import mimetypes
 import email
+from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
+from jinja2 import Markup
 
 cachedir = "static" # special for webpy server; changeable if using your own
+
+env = Environment(autoescape=True,
+                  loader=FileSystemLoader('templates'))
 
 urls = (
   '/', 'index',
@@ -21,9 +26,11 @@ db = Database()
 
 class index:
   def GET(self):
+    template = env.get_template('index.html')
+    tags = db.get_all_tags()
+    return template.render(tags=tags)
     prefix = '<html><head><title>Notmuch mail</title></head><body><ul>'
     suffix = '</ul></body></html>'
-    tags = db.get_all_tags()
     middle = ''
     for tag in tags:
         middle = middle + '<li><a href="/search/tag:%s">%s</a></li>' % (urllib.quote_plus(tag),tag)
