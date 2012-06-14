@@ -4,12 +4,12 @@
 <title>Notmuch webmail</title>
 </head><body>
 <h2>Notmuch webmail</h2>
-<form>
-<input name="search">
+<form action="search/" method="GET">
+<input name="terms">
 </form>
 <h2>Common tags</h2>
 <ul>
 {% for tag in tags %}
-  <li><a href="/search/tag:{{ tag }}">{{ tag }}</a></li>
+  <li><a href="/search/tag:{{ tag|url }}">{{ tag|e }}</a></li>
 {% endfor %}
 </ul></body></html>

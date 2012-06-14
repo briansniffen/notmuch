@@ -1,0 +1,15 @@
+<html>
+  <head>
+<title>Notmuch mail: search results</title>
+</head>
+<body>
+<h1>{{ terms|e }}</h1>
+{% for t in ts %}
+  <h2>{{ t.get_subject()|e }}</h2>
+  <p><i>{{ t.get_authors()|e }}</i></p>
+  <p><b>{{ format_time_range(t.get_oldest_date(), 
+                             t.get_newest_date())|e }}</b></p>
+  {{ show_msgs(t.get_toplevel_messages())|safe }}
+{% endfor %}
+</body>
+</html>

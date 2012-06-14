@@ -24,45 +24,48 @@ urls = (
 
 db = Database()
 
+def urlencode_filter(s):
+    if type(s) == 'Markup':
+        s = s.unescape()
+    s = s.encode('utf8')
+    s = urllib.quote_plus(s)
+    return Markup(s)
+env.filters['url'] = urlencode_filter
+
 class index:
   def GET(self):
+    web.header('Content-type', 'text/html')
+    web.header('Transfer-Encoding', 'chunked')
     template = env.get_template('index.html')
     tags = db.get_all_tags()
     return template.render(tags=tags)
-    prefix = '<html><head><title>Notmuch mail</title></head><body><ul>'
-    suffix = '</ul></body></html>'
-    middle = ''
-    for tag in tags:
-        middle = middle + '<li><a href="/search/tag:%s">%s</a></li>' % (urllib.quote_plus(tag),tag)
-    return prefix + middle + suffix
 
 class search:
   def GET(self,terms):
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
+    if web.input().terms:
+      terms = web.input().terms
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()
-    yield '<html><head><title>Notmuch mail: search results</title></head><body>'
-    yield '<h1>%s</h1>' % terms
-    for t in ts:
-      subj = t.get_subject()
-      auths = t.get_authors()
-      start,end = t.get_oldest_date(), t.get_newest_date()
-      if end-start < (60*60*24):
-        time = datetime.fromtimestamp(start).strftime('%Y %b %d %H:%M')
-      else:
-        start = datetime.fromtimestamp(start).strftime("%Y %b %d")
-        end = datetime.fromtimestamp(end).strftime("%Y %b %d")
-	time = "%s through %s" % (start,end)
-      msgs = t.get_toplevel_messages()
-      yield '<h2>%s</h2><p><i>%s</i></p><p><b>%s</b></p>' % (subj,auths,time) # FIXME escaping
-      yield show_msgs(msgs)
-    yield '</body></html>'
+    template = env.get_template('search.html')
+    return template.generate(terms=terms,ts=ts)
+
+def format_time_range(start,end):
+  if end-start < (60*60*24):
+    time = datetime.fromtimestamp(start).strftime('%Y %b %d %H:%M')
+  else:
+    start = datetime.fromtimestamp(start).strftime("%Y %b %d")
+    end = datetime.fromtimestamp(end).strftime("%Y %b %d")
+    time = "%s through %s" % (start,end)
+  return time
+env.globals['format_time_range'] = format_time_range
 
 def mailto_addrs(frm):
     frm = email.utils.getaddresses([frm])
     return ','.join(['<a href="mailto:%s">%s</a> ' % ((l,p) if p else (l,l)) for (p,l) in frm])
+env.globals['mailto_addrs'] = mailto_addrs
 
 def show_msgs(msgs):
   r = '<ul>'
@@ -78,6 +81,7 @@ def show_msgs(msgs):
     r += '<li><font color=%s>%s&mdash;<a href="/show/%s">%s</a></font> %s</li>' % (red,frm,lnk,subj,rs)
   r += '</ul>'
   return r
+env.globals['show_msgs'] = show_msgs
 
 # As email.message.walk, but showing close tags as well
 def mywalk(self):
@@ -94,18 +98,15 @@ class show:
     web.header('Transfer-Encoding', 'chunked')
     q = Query(db,'id:'+mid)
     m = list(q.search_messages())[0]
-    subj = m.get_header('Subject')
-    yield '<html><head><title>Brian\'s mail: %s</title></head><body>' % subj
-    headers = ['Subject', 'Date']
-    addr_headers = ['To', 'Cc', 'From']
+    template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
-    for header in headers:
-      yield '<p><b>%s:</b>%s</p>' % (header,m.get_header(header))
-    for header in addr_headers:
-      yield '<p><b>%s:</b>%s</p>' % (header, mailto_addrs(m.get_header(header)))
-    yield '<hr>'
-    msg = MaildirMessage(open(m.get_filename()))
+    # FIXME handle cid: url scheme
+    # FIXME come up with some brilliant plan for script tags and other dangerous things
+    return template.generate(m=m)
+
+def format_message(fn):
+    msg = MaildirMessage(open(fn))
     counter = 0
     for part in mywalk(msg):
       if part=='close-div': yield '</div>'
@@ -130,7 +131,7 @@ class show:
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
         yield '<a href="%s">%s (%s)</a>' % (os.path.join('/static',mid,filename),filename,part.get_content_type())
-    yield '</body></html>'
+env.globals['format_message'] = format_message
 
 def link_to_cached_file(part,mid,counter):
     filename = part.get_filename()

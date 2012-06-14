@@ -1,0 +1,20 @@
+<html>
+  <head>
+<title>Notmuch mail: {{ m.get_header('Subject') }}</title>
+</head>
+<body>
+<h1>Notmuch mail: {{ m.get_header('Subject') }}</h1>
+{% set headers = ['Subject', 'Date'] %}
+{% set addr_headers = ['To', 'Cc', 'From'] %}
+{% for header in headers: %}
+<p><b>{{header}}:</b>{{m.get_header(header)|e}}</p>
+{% endfor %}
+{% for header in addr_headers: %}
+<p><b>{{header}}:</b>{{mailto_addrs(m.get_header(header))|safe}}</p>
+{% endfor %}
+<hr>
+{% for part in format_message(m.get_filename()): %}
+{{ part|safe }}
+{% endfor %}
+</body>
+</html>
