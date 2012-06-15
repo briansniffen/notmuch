@@ -103,14 +103,15 @@ class show:
     # FIXME add forward link using mailto with body parameter?
     # FIXME handle cid: url scheme
     # FIXME come up with some brilliant plan for script tags and other dangerous things
-    return template.generate(m=m)
+    return template.render(m=m,mid=mid)
 
-def format_message(fn):
+def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
     counter = 0
     for part in mywalk(msg):
       if part=='close-div': yield '</div>'
       elif part.get_content_maintype() == 'multipart': 
+        ## FIXME tabbed interface for multipart/alternative
         yield '<div class="multipart-%s">' % part.get_content_subtype()
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
@@ -133,6 +134,9 @@ def format_message(fn):
         yield '<a href="%s">%s (%s)</a>' % (os.path.join('/static',mid,filename),filename,part.get_content_type())
 env.globals['format_message'] = format_message
 
+def replace_cids(body):
+    return body
+
 def link_to_cached_file(part,mid,counter):
     filename = part.get_filename()
     if not filename:
@@ -144,9 +148,14 @@ def link_to_cached_file(part,mid,counter):
       os.makedirs(os.path.join(cachedir,mid))
     except OSError:
       pass
-    fp = open(os.path.join(cachedir, mid, filename), 'wb') # FIXME escape mid,filename
+    fn = os.path.join(cachedir, mid, filename) # FIXME escape mid,filename
+    fp = open(fn, 'wb')
     fp.write(part.get_payload(decode=True))
     fp.close()
+    if 'Content-ID' in part:
+        cid = part['Content-ID']
+        cid_fn = os.path.join(cachedir, mid, cid) # FIXME escape mid,cid
+        os.link(fn,cid_fn)
     return filename
 
 if __name__ == '__main__': 
