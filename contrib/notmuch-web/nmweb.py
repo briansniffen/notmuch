@@ -165,7 +165,7 @@ def link_to_cached_file(part,mid,counter):
     fp.close()
     if 'Content-ID' in part:
         cid = part['Content-ID']
-        cid = cid[1:-1] # chop <brackets>
+        if cid[0]=='<' and cid[-1]=='>': cid = cid[1:-1]
         cid_fn = os.path.join(cachedir, mid, cid) # FIXME escape mid,cid
         try:
             os.unlink(cid_fn)
