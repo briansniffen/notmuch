@@ -8,10 +8,11 @@ from mailbox import MaildirMessage
 import os
 import mimetypes
 import email
+import string
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
 
-cachedir = "static" # special for webpy server; changeable if using your own
+cachedir = "static/cache" # special for webpy server; changeable if using your own
 
 env = Environment(autoescape=True,
                   loader=FileSystemLoader('templates'))
@@ -119,23 +120,23 @@ def format_message(fn,mid):
 	  yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
 	  yield '</pre>'
         elif part.get_content_subtype() == 'html':
-          yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
+          yield replace_cids(part.get_payload(decode=True).decode(part.get_content_charset('ascii')),mid)
         else:
           filename = link_to_cached_file(part,mid,counter)
 	  counter += 1
-	  yield '<a href="%s">%s (%s)</a>' % (os.path.join('/static',mid,filename),filename,part.get_content_type())
+	  yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
       elif part.get_content_maintype() == 'image':
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
-        yield '<img src="%s" alt="%s">' % (os.path.join('/static',mid,filename),filename)
+        yield '<img src="%s" alt="%s">' % (os.path.join('/',cachedir,mid,filename),filename)
       else:
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
-        yield '<a href="%s">%s (%s)</a>' % (os.path.join('/static',mid,filename),filename,part.get_content_type())
+        yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
 env.globals['format_message'] = format_message
 
-def replace_cids(body):
-    return body
+def replace_cids(body,mid):
+    return string.replace(body,'cid:',("/%s/%s/" % (cachedir,mid)))
 
 def link_to_cached_file(part,mid,counter):
     filename = part.get_filename()
@@ -154,7 +155,12 @@ def link_to_cached_file(part,mid,counter):
     fp.close()
     if 'Content-ID' in part:
         cid = part['Content-ID']
+        cid = cid[1:-1] # chop <brackets>
         cid_fn = os.path.join(cachedir, mid, cid) # FIXME escape mid,cid
+        try:
+            os.unlink(cid_fn)
+        except OSError:
+            pass
         os.link(fn,cid_fn)
     return filename
 

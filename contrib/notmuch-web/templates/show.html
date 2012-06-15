@@ -1,9 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
   <head>
-<title>Notmuch mail: {{ m.get_header('Subject') }}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+{% set subj = m.get_header('Subject') %}
+<title>Notmuch mail: {{ subj }}</title>
 </head>
 <body>
-<h1>Notmuch mail: {{ m.get_header('Subject') }}</h1>
+<h1>Notmuch mail: {{ subj }}</h1>
 {% set headers = ['Subject', 'Date'] %}
 {% set addr_headers = ['To', 'Cc', 'From'] %}
 {% for header in headers: %}
