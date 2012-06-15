@@ -110,21 +110,31 @@ def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
     counter = 0
     for part in mywalk(msg):
-      if part=='close-div': yield '</div>'
+      if part=='close-div': 
+          yield '</div>'
       elif part.get_content_maintype() == 'multipart': 
         ## FIXME tabbed interface for multipart/alternative
         yield '<div class="multipart-%s">' % part.get_content_subtype()
+        if part.get_content_subtype() == 'alternative':
+          yield '<ul>'
+          for subpart in part.get_payload():
+            yield '<li><a href="#%s">%s</a></li>' % (part.get_content_type(), part.get_content_type())
+          yield '</ul>'
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
-          yield '<pre>'
-	  yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
-	  yield '</pre>'
+          yield '<div id="text/plain"><pre>'
+          yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
+          yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
+          yield '<div id="text/html">'
           yield replace_cids(part.get_payload(decode=True).decode(part.get_content_charset('ascii')),mid)
+          yield '</div>'
         else:
+          yield '<div id="%s">' % part.get_content_type()
           filename = link_to_cached_file(part,mid,counter)
-	  counter += 1
-	  yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
+          counter += 1
+          yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
+          yield '</div>'
       elif part.get_content_maintype() == 'image':
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
