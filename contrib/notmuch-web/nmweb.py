@@ -44,7 +44,7 @@ class search:
   def GET(self,terms):
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
-    if web.input().terms:
+    if web.input(terms=None).terms:
       terms = web.input().terms
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
@@ -115,10 +115,10 @@ def format_message(fn):
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
           yield '<pre>'
-	  yield part.get_payload(decode=True)
+	  yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
 	  yield '</pre>'
         elif part.get_content_subtype() == 'html':
-          yield part.get_payload(decode=True)
+          yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
         else:
           filename = link_to_cached_file(part,mid,counter)
 	  counter += 1
