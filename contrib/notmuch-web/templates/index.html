@@ -6,34 +6,7 @@
 <script type="text/javascript" src="static/js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript"
 src="static/js/jquery-ui-1.8.21.custom.min.js"></script>
-<script type="text/javascript">
-$(function(){
-  $("#after").datepicker({
-    altField: "#afters",
-    altFormat: "@",
-    changeMonth: true,
-    changeYear: true,
-    defaultDate: "-7d",
-    minDate: "01/01/1970",
-    yearRange: "2000:+0",
-    onSelect: function(selectedDate) {
-      $("#before").datepicker("option","minDate",selectedDate);
-    }
-  });
-  $("#before").datepicker({
-    altField: "#befores",
-    altFormat: "@",
-    changeMonth: true,
-    changeYear: true,
-    defaultDate: "+1d",
-    maxDate: "+1d",
-    yearRange: "2000:+0",
-    onSelect: function(selectedDate) {
-      $("#after").datepicker("option","maxDate",selectedDate);
-    }
-  });
-});
-</script>
+<script type="text/javascript" src="static/js/notmuch-0.1.js"></script>
 <title>Notmuch webmail</title>
 </head><body>
 <h2>Notmuch webmail</h2>

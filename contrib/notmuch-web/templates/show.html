@@ -6,16 +6,20 @@
 <script type="text/javascript" src="../static/js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript"
 src="../static/js/jquery-ui-1.8.21.custom.min.js"></script>
-<script type="text/javascript">
-$(function(){
-$('.multipart-alternative').tabs()
-})
-</script>
+<script type="text/javascript" src="static/js/notmuch-0.1.js"></script>
 {% set subj = m.get_header('Subject') %}
 <title>Notmuch mail: {{ subj }}</title>
 </head>
 <body>
 <h1>Notmuch mail: {{ subj }}</h1>
+<form action="../search/" method="GET">
+<label for="terms">Terms</label><input id="terms" name="terms"><br>
+<label for="after">After</label><input id="after"
+name="after"><input id="afters" name="afters"><br>
+<label for="before">Before</label><input id="before"
+name="before"><input id="befores" name="befores"><br>
+<input type="submit" name="submit" id="submit">
+</form>
 {% set headers = ['Subject', 'Date'] %}
 {% set addr_headers = ['To', 'Cc', 'From'] %}
 {% for header in headers: %}
