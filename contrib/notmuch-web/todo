@@ -1,7 +1,13 @@
-use jquery, especially for tabs on multipart/alternative
-
-add a search box on the front page, including jquery calendars for date ranges
-
 review escaping and safety handling mail from Bad People
 
-replace cid: links with links to cache directory
+revise template loader---can we make this faster?
+
+add reply-all link with email.urils.getaddresses
+
+change current reply links to quote body
+
+add forward link using mailto with body parameter?
+
+put the search box on every page?
+
+unescape the current search term, including translating back dates
