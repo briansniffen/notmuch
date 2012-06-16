@@ -204,7 +204,8 @@ def link_to_cached_file(part,mid,counter):
       pass
     fn = os.path.join(cachedir, mid, filename) # FIXME escape mid,filename
     fp = open(fn, 'wb')
-    fp.write(part.get_payload(decode=True))
+    data = part.get_payload(decode=True)
+    if data: fp.write(data)
     fp.close()
     if 'Content-ID' in part:
         cid = part['Content-ID']
