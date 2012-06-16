@@ -9,6 +9,7 @@ import os
 import mimetypes
 import email
 import string
+import re
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
 
@@ -125,6 +126,7 @@ class show:
 def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
     counter = 0
+    cid_refd = []
     for part in mywalk(msg):
       if part=='close-div': 
           yield '</div>'
@@ -146,26 +148,48 @@ def format_message(fn,mid):
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
           yield '<div id="text-html">'
-          yield replace_cids(part.get_payload(decode=True).decode(part.get_content_charset('ascii')),mid)
+          unb64 = part.get_payload(decode=True)
+          decoded = unb64.decode(part.get_content_charset('ascii'))
+          cid_refd += find_cids(decoded)
+          print cid_refd
+          yield replace_cids(decoded,mid)
           yield '</div>'
         else:
           yield '<div id="%s">' % string.replace(part.get_content_type(),'/','-')
-          filename = link_to_cached_file(part,mid,counter)
+          (filename,cid) = link_to_cached_file(part,mid,counter)
           counter += 1
-          yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,cachedir,mid,filename),filename,part.get_content_type())
+          yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,
+                                                           cachedir,
+                                                           mid,
+                                                           filename),
+                                              filename,
+                                              part.get_content_type())
           yield '</div>'
       elif part.get_content_maintype() == 'image':
-        filename = link_to_cached_file(part,mid,counter)
-        counter += 1
-        yield '<img src="%s" alt="%s">' % (os.path.join(prefix,cachedir,mid,filename),filename)
+        (filename,cid) = link_to_cached_file(part,mid,counter)
+        if cid not in cid_refd:
+          counter += 1
+          yield '<img src="%s" alt="%s">' % (os.path.join(prefix,
+                                                          cachedir,
+                                                          mid,
+                                                          filename),
+                                             filename)
       else:
-        filename = link_to_cached_file(part,mid,counter)
+        (filename,cid) = link_to_cached_file(part,mid,counter)
         counter += 1
-        yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,cachedir,mid,filename),filename,part.get_content_type())
+        yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,
+                                                         cachedir,
+                                                         mid,
+                                                         filename),
+                                            filename,
+                                            part.get_content_type())
 env.globals['format_message'] = format_message
 
 def replace_cids(body,mid):
     return string.replace(body,'cid:',os.path.join(prefix,cachedir,mid)+'/')
+
+def find_cids(body):
+    return re.findall(r'cid:([^ "\'>]*)', body)
 
 def link_to_cached_file(part,mid,counter):
     filename = part.get_filename()
@@ -191,7 +215,9 @@ def link_to_cached_file(part,mid,counter):
         except OSError:
             pass
         os.link(fn,cid_fn)
-    return filename
+        return (filename,cid)
+    else:
+        return (filename,None)
 
 if __name__ == '__main__': 
     app = web.application(urls, globals())
