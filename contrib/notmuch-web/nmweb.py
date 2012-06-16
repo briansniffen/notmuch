@@ -43,10 +43,25 @@ class index:
 
 class search:
   def GET(self,terms):
+    redir = False
+    if web.input(terms=None).terms:
+      redir = True
+      terms = web.input().terms
+    if web.input(afters=None).afters:
+      afters = web.input(afters=None).afters[:-3]
+    else:
+      afters='0'
+    if web.input(befores=None).befores:
+      befores = web.input(befores=None).befores
+    else:
+      befores = '4294967296' # 2^32
+    if int(afters) > 0 or int(befores) < 4294967296:
+      redir = True
+      terms += ' %s..%s' % (afters,befores)
+    if redir:
+      raise web.seeother('/search/%s' % urllib.quote_plus(terms))
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
-    if web.input(terms=None).terms:
-      terms = web.input().terms
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()

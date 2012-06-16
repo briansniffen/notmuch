@@ -2,11 +2,48 @@
 <html lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link type="text/css" href="/static/css/ui-lightness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<script type="text/javascript" src="/static/js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript"
+src="/static/js/jquery-ui-1.8.21.custom.min.js"></script>
+<script type="text/javascript">
+$(function(){
+  $("#after").datepicker({
+    altField: "#afters",
+    altFormat: "@",
+    changeMonth: true,
+    changeYear: true,
+    defaultDate: "-7d",
+    minDate: "01/01/1970",
+    yearRange: "2000:+0",
+    onSelect: function(selectedDate) {
+      $("#before").datepicker("option","minDate",selectedDate);
+    }
+  });
+  $("#before").datepicker({
+    altField: "#befores",
+    altFormat: "@",
+    changeMonth: true,
+    changeYear: true,
+    defaultDate: "+1d",
+    maxDate: "+1d",
+    yearRange: "2000:+0",
+    onSelect: function(selectedDate) {
+      $("#after").datepicker("option","maxDate",selectedDate);
+    }
+  });
+});
+</script>
 <title>Notmuch webmail</title>
 </head><body>
 <h2>Notmuch webmail</h2>
 <form action="search/" method="GET">
-<input name="terms">
+<label for="terms">Terms</label><input id="terms" name="terms"><br>
+<label for="after">After</label><input id="after"
+name="after"><input id="afters" name="afters"><br>
+<label for="before">Before</label><input id="before"
+name="before"><input id="befores" name="befores"><br>
+<input type="submit" name="submit" id="submit">
 </form>
 <h2>Common tags</h2>
 <ul>
