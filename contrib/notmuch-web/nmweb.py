@@ -12,6 +12,8 @@ import string
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
 
+prefix = "/btsmail"
+
 cachedir = "static/cache" # special for webpy server; changeable if using your own
 
 env = Environment(autoescape=True,
@@ -94,7 +96,7 @@ def show_msgs(msgs):
     subj = msg.get_header('Subject')
     lnk = urllib.quote_plus(msg.get_message_id())
     rs = show_msgs(msg.get_replies())
-    r += '<li><font color=%s>%s&mdash;<a href="/show/%s">%s</a></font> %s</li>' % (red,frm,lnk,subj,rs)
+    r += '<li><font color=%s>%s&mdash;<a href="%s/show/%s">%s</a></font> %s</li>' % (red,frm,prefix,lnk,subj,rs)
   r += '</ul>'
   return r
 env.globals['show_msgs'] = show_msgs
@@ -117,7 +119,6 @@ class show:
     template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
-    # FIXME handle cid: url scheme
     # FIXME come up with some brilliant plan for script tags and other dangerous things
     return template.render(m=m,mid=mid)
 
@@ -151,20 +152,20 @@ def format_message(fn,mid):
           yield '<div id="%s">' % string.replace(part.get_content_type(),'/','-')
           filename = link_to_cached_file(part,mid,counter)
           counter += 1
-          yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
+          yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,cachedir,mid,filename),filename,part.get_content_type())
           yield '</div>'
       elif part.get_content_maintype() == 'image':
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
-        yield '<img src="%s" alt="%s">' % (os.path.join('/',cachedir,mid,filename),filename)
+        yield '<img src="%s" alt="%s">' % (os.path.join(prefix,cachedir,mid,filename),filename)
       else:
         filename = link_to_cached_file(part,mid,counter)
         counter += 1
-        yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
+        yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,cachedir,mid,filename),filename,part.get_content_type())
 env.globals['format_message'] = format_message
 
 def replace_cids(body,mid):
-    return string.replace(body,'cid:',("/%s/%s/" % (cachedir,mid)))
+    return string.replace(body,'cid:',os.path.join(prefix,cachedir,mid)+'/')
 
 def link_to_cached_file(part,mid,counter):
     filename = part.get_filename()

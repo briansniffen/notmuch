@@ -1,7 +1,12 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html>
   <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"
+  />
+<link type="text/css" href="../static/css/ui-lightness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<script type="text/javascript" src="../static/js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript"
+src="../static/js/jquery-ui-1.8.21.custom.min.js"></script>
 <title>Notmuch mail: search results</title>
 </head>
 <body>
@@ -9,7 +14,7 @@
 {% for t in ts %}
   <h2>{{ t.get_subject()|e }}</h2>
   <p><i>{{ t.get_authors()|e }}</i></p>
-  <p><b>{{ format_time_range(t.get_oldest_date(), 
+  <p><b>{{ format_time_range(t.get_oldest_date(),
                              t.get_newest_date())|e }}</b></p>
   {{ show_msgs(t.get_toplevel_messages())|safe }}
 {% endfor %}
