@@ -118,19 +118,22 @@ def format_message(fn,mid):
         if part.get_content_subtype() == 'alternative':
           yield '<ul>'
           for subpart in part.get_payload():
-            yield '<li><a href="#%s">%s</a></li>' % (part.get_content_type(), part.get_content_type())
+            yield ('<li><a href="#%s">%s</a></li>' %
+                   (string.replace(subpart.get_content_type(),
+                                   '/', '-'),
+                    subpart.get_content_type()))
           yield '</ul>'
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
-          yield '<div id="text/plain"><pre>'
+          yield '<div id="text-plain"><pre>'
           yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
-          yield '<div id="text/html">'
+          yield '<div id="text-html">'
           yield replace_cids(part.get_payload(decode=True).decode(part.get_content_charset('ascii')),mid)
           yield '</div>'
         else:
-          yield '<div id="%s">' % part.get_content_type()
+          yield '<div id="%s">' % string.replace(part.get_content_type(),'/','-')
           filename = link_to_cached_file(part,mid,counter)
           counter += 1
           yield '<a href="%s">%s (%s)</a>' % (os.path.join('/',cachedir,mid,filename),filename,part.get_content_type())
