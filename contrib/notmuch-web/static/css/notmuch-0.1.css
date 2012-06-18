@@ -1,0 +1,8 @@
+pre {
+  white-space: pre-wrap;
+}
+
+.message-rfc822 {
+  border: 1px solid;
+  border-radius: 25px;
+}

@@ -1,26 +1,9 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
-<html lang="en">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link type="text/css" href="static/css/ui-lightness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
-<script type="text/javascript" src="static/js/jquery-1.7.2.min.js"></script>
-<script type="text/javascript"
-src="static/js/jquery-ui-1.8.21.custom.min.js"></script>
-<script type="text/javascript" src="static/js/notmuch-0.1.js"></script>
-<title>Notmuch webmail</title>
-</head><body>
-<h2>Notmuch webmail</h2>
-<form action="search/" method="GET">
-<label for="terms">Terms</label><input id="terms" name="terms"><br>
-<label for="after">After</label><input id="after"
-name="after"><input id="afters" name="afters"><br>
-<label for="before">Before</label><input id="before"
-name="before"><input id="befores" name="befores"><br>
-<input type="submit" name="submit" id="submit">
-</form>
+{% extends "base.html" %}
+{% block content %}
 <h2>Common tags</h2>
 <ul>
 {% for tag in tags %}
   <li><a href="search/tag:{{ tag|url }}">{{ tag|e }}</a></li>
 {% endfor %}
-</ul></body></html>
+</ul>
+{% endblock content %}
