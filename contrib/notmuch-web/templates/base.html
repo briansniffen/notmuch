@@ -4,15 +4,13 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"
   />
 	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+<script type="text/javascript" src="{{prefix}}/js/jquery-1.7.2.min.js"></script>
 <link type="text/css"
 href="{{prefix}}/css/ui-lightness/jquery-ui-1.8.21.custom.css"
 rel="stylesheet" />
-<link rel="stylesheet" href="{{prefix}}/css/jquery.mobile-1.1.0.min.css" />
-<link type="text/css" href="{{prefix}}/css/notmuch-0.1.css" rel="stylesheet" />
-<script type="text/javascript" src="{{prefix}}/js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript"
 src="{{prefix}}/js/jquery-ui-1.8.21.custom.min.js"></script>
-<script type="text/javascript" src="{{prefix}}/js/jquery.mobile-1.1.0.min.js"></script>
+<link type="text/css" href="{{prefix}}/css/notmuch-0.1.css" rel="stylesheet" />
 <script type="text/javascript" src="{{prefix}}/js/notmuch-0.1.js"></script>
 <title>{{title}}</title>
 </head><body>
@@ -20,7 +18,7 @@ src="{{prefix}}/js/jquery-ui-1.8.21.custom.min.js"></script>
 <div data-role="header">
 <h2>{{title}}</h2>
 {% block searchform %}
-<form action="search/" method="GET">
+<form action="search/" method="GET" data-ajax="false">
 <label for="terms">Terms</label><input id="terms" name="terms"><br>
 <label for="after">After</label><input id="after"
 name="after"><input id="afters" name="afters"><br>

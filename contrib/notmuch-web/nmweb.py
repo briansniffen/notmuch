@@ -15,6 +15,8 @@ from jinja2 import Markup
 
 prefix = "/btsmail"
 
+webprefix = prefix + "/static"
+
 cachedir = "static/cache" # special for webpy server; changeable if using your own
 
 env = Environment(autoescape=True,
@@ -40,9 +42,12 @@ class index:
   def GET(self):
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
+    base = env.get_template('base.html')
     template = env.get_template('index.html')
     tags = db.get_all_tags()
-    return template.render(tags=tags)
+    return template.render(tags=tags,
+                           title="Notmuch webmail",
+                           prefix=webprefix)
 
 class search:
   def GET(self,terms):
@@ -69,7 +74,10 @@ class search:
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()
     template = env.get_template('search.html')
-    return template.generate(terms=terms,ts=ts)
+    return template.generate(terms=terms,
+                             ts=ts,
+                             title=terms,
+                             prefix=webprefix)
 
 def format_time_range(start,end):
   if end-start < (60*60*24):
@@ -115,23 +123,30 @@ class show:
   def GET(self,mid):
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
+    db = Database()
     q = Query(db,'id:'+mid)
     m = list(q.search_messages())[0]
     template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
     # FIXME come up with some brilliant plan for script tags and other dangerous things
-    return template.render(m=m,mid=mid)
+    return template.render(m=m,
+                           mid=mid,
+                           title=m.get_header('Subject'),
+                           prefix=webprefix)
 
 def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
+    return format_message_walk(msg,mid)
+
+
+def format_message_walk(msg,mid):
     counter = 0
     cid_refd = []
     for part in mywalk(msg):
       if part=='close-div': 
           yield '</div>'
       elif part.get_content_maintype() == 'multipart': 
-        ## FIXME tabbed interface for multipart/alternative
         yield '<div class="multipart-%s">' % part.get_content_subtype()
         if part.get_content_subtype() == 'alternative':
           yield '<ul>'
@@ -141,6 +156,9 @@ def format_message(fn,mid):
                                    '/', '-'),
                     subpart.get_content_type()))
           yield '</ul>'
+      elif part.get_content_type() == 'message/rfc822':
+          # FIXME extract subject, date, to/cc/from into a separate template and use it here
+          yield '<div class="message-rfc822">'
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
           yield '<div id="text-plain"><pre>'
