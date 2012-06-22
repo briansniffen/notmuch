@@ -28,8 +28,6 @@ urls = (
   '/show/(.*)', 'show',
   )
 
-db = Database()
-
 def urlencode_filter(s):
     if type(s) == 'Markup':
         s = s.unescape()
@@ -44,6 +42,7 @@ class index:
     web.header('Transfer-Encoding', 'chunked')
     base = env.get_template('base.html')
     template = env.get_template('index.html')
+    db = Database()
     tags = db.get_all_tags()
     return template.render(tags=tags,
                            title="Notmuch webmail",
@@ -70,6 +69,7 @@ class search:
       raise web.seeother('/search/%s' % urllib.quote_plus(terms))
     web.header('Content-type', 'text/html')
     web.header('Transfer-Encoding', 'chunked')
+    db = Database()
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
     ts = q.search_threads()
