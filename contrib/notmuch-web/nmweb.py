@@ -46,7 +46,8 @@ class index:
     tags = db.get_all_tags()
     return template.render(tags=tags,
                            title="Notmuch webmail",
-                           prefix=webprefix)
+			   prefix=prefix,
+                           sprefix=webprefix)
 
 class search:
   def GET(self,terms):
