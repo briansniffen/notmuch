@@ -78,7 +78,8 @@ class search:
     return template.generate(terms=terms,
                              ts=ts,
                              title=terms,
-                             prefix=webprefix)
+                             prefix=prefix,
+			     sprefix=webprefix)
 
 def format_time_range(start,end):
   if end-start < (60*60*24):
@@ -134,7 +135,8 @@ class show:
     return template.render(m=m,
                            mid=mid,
                            title=m.get_header('Subject'),
-                           prefix=webprefix)
+                           prefix=prefix,
+			   sprefix=webprefix)
 
 def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
