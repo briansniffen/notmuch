@@ -26,5 +26,10 @@ $(function(){
   $(function(){
   $('.multipart-alternative').tabs()
   });
+  $(function(){
+  $('.embedded-html').load(function(){
+      this.style.height = this.contentWindow.document.body.offsetHeight + 'px';
+    });
+  });
 });
 

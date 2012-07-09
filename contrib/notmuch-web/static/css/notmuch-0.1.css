@@ -6,3 +6,10 @@ pre {
   border: 1px solid;
   border-radius: 25px;
 }
+
+.embedded-html {
+  frameborder: 0;
+  border: 0;
+  scrolling: no;
+  width: 100%;
+}

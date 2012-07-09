@@ -172,8 +172,10 @@ def format_message_walk(msg,mid):
           unb64 = part.get_payload(decode=True)
           decoded = unb64.decode(part.get_content_charset('ascii'))
           cid_refd += find_cids(decoded)
-          print cid_refd
-          yield replace_cids(decoded,mid)
+          part.set_payload(replace_cids(decoded,mid).encode(part.get_content_charset('ascii')))
+	  (filename,cid) = link_to_cached_file(part,mid,counter)
+	  counter +=1
+	  yield '<iframe class="embedded-html" src="%s">' % os.path.join(prefix,cachedir,mid,filename)
           yield '</div>'
         else:
           yield '<div id="%s">' % string.replace(part.get_content_type(),'/','-')
@@ -225,7 +227,10 @@ def link_to_cached_file(part,mid,counter):
       pass
     fn = os.path.join(cachedir, mid, filename) # FIXME escape mid,filename
     fp = open(fn, 'wb')
-    data = part.get_payload(decode=True)
+    if part.get_content_maintype()=='text':
+      data = part.get_payload(decode=True).decode(part.get_content_charset('ascii')).encode('utf-8')
+    else:
+      data = part.get_payload(decode=False)
     if data: fp.write(data)
     fp.close()
     if 'Content-ID' in part:
