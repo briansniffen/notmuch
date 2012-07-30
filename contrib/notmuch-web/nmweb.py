@@ -165,7 +165,15 @@ def format_message_walk(msg,mid):
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
           yield '<div id="text-plain"><pre>'
-          yield part.get_payload(decode=True).decode(part.get_content_charset('ascii'))
+          out = part.get_payload(decode=True)
+          try:
+            out = out.decode(part.get_content_charset('ascii'))
+          except UnicodeDecodeError:
+            try:
+              out = out.decode('utf-8')
+            except UnicodeDecodeError:
+              out = out.decode('latin1')
+          yield out
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
           yield '<div id="text-html">'
