@@ -142,6 +142,15 @@ def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
     return format_message_walk(msg,mid)
 
+def decodeAnyway(txt,charset='ascii'):
+  try:
+    out = txt.decode(charset)
+  except UnicodeDecodeError:
+    try:
+      out = txt.decode('utf-8')
+    except UnicodeDecodeError:
+      out = txt.decode('latin1')
+  return out
 
 def format_message_walk(msg,mid):
     counter = 0
@@ -166,19 +175,13 @@ def format_message_walk(msg,mid):
         if part.get_content_subtype() == 'plain':
           yield '<div id="text-plain"><pre>'
           out = part.get_payload(decode=True)
-          try:
-            out = out.decode(part.get_content_charset('ascii'))
-          except UnicodeDecodeError:
-            try:
-              out = out.decode('utf-8')
-            except UnicodeDecodeError:
-              out = out.decode('latin1')
+          out = decodeAnyway(out,part.get_content_charset('ascii'))
           yield out
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
           yield '<div id="text-html">'
           unb64 = part.get_payload(decode=True)
-          decoded = unb64.decode(part.get_content_charset('ascii'))
+          decoded = decodeAnyway(unb64,part.get_content_charset('ascii'))
           cid_refd += find_cids(decoded)
           part.set_payload(replace_cids(decoded,mid).encode(part.get_content_charset('ascii')))
 	  (filename,cid) = link_to_cached_file(part,mid,counter)
@@ -236,9 +239,13 @@ def link_to_cached_file(part,mid,counter):
     fn = os.path.join(cachedir, mid, filename) # FIXME escape mid,filename
     fp = open(fn, 'wb')
     if part.get_content_maintype()=='text':
-      data = part.get_payload(decode=True).decode(part.get_content_charset('ascii')).encode('utf-8')
+      data = part.get_payload(decode=True)
+      data = decodeAnyway(data,part.get_content_charset('ascii')).encode('utf-8')
     else:
-      data = part.get_payload(decode=False)
+      try:
+        data = part.get_payload(decode=True)
+      except:
+        data = part.get_payload(decode=False)
     if data: fp.write(data)
     fp.close()
     if 'Content-ID' in part:
