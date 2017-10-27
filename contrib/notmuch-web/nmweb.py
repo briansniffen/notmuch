@@ -10,14 +10,20 @@ import mimetypes
 import email
 import string
 import re
+import bleach
+import cgi
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
 
-prefix = "/btsmail"
+# Configuration options
+safe_tags = bleach.sanitizer.ALLOWED_TAGS + [u'div', u'span', u'p', u'br', u'table', u'tr', u'td', u'th']
+linkifyPlaintext = True
 
+prefix = "https://nmweb.evenmere.org"
 webprefix = prefix + "/static"
-
 cachedir = "static/cache" # special for webpy server; changeable if using your own
+
+# End of config options
 
 env = Environment(autoescape=True,
                   loader=FileSystemLoader('templates'))
@@ -39,7 +45,7 @@ env.filters['url'] = urlencode_filter
 class index:
   def GET(self):
     web.header('Content-type', 'text/html')
-    web.header('Transfer-Encoding', 'chunked')
+    #web.header('Transfer-Encoding', 'chunked')
     base = env.get_template('base.html')
     template = env.get_template('index.html')
     db = Database()
@@ -65,11 +71,11 @@ class search:
       befores = '4294967296' # 2^32
     if int(afters) > 0 or int(befores) < 4294967296:
       redir = True
-      terms += ' %s..%s' % (afters,befores)
+      terms += ' date:%s..%s' % (afters,befores)
     if redir:
       raise web.seeother('/search/%s' % urllib.quote_plus(terms))
     web.header('Content-type', 'text/html')
-    web.header('Transfer-Encoding', 'chunked')
+    #web.header('Transfer-Encoding', 'chunked')
     db = Database()
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
@@ -96,18 +102,25 @@ def mailto_addrs(frm):
     return ','.join(['<a href="mailto:%s">%s</a> ' % ((l,p) if p else (l,l)) for (p,l) in frm])
 env.globals['mailto_addrs'] = mailto_addrs
 
+def link_msg(msg):
+    lnk = urllib.quote_plus(msg.get_message_id())
+    subj = msg.get_header('Subject')
+    out = '<a href="%s/show/%s">%s</a>' % (prefix,lnk,subj)
+    return out
+env.globals['link_msg'] = link_msg
+
 def show_msgs(msgs):
   r = '<ul>'
   for msg in msgs:
-    red = 'black'
+    red = 'color:black; font-style:normal'
     flag = msg.get_flag(Message.FLAG.MATCH)
-    if flag: red='red'
+    if flag: red='color:red; font-style:italic'
     frm = msg.get_header('From')
     frm = mailto_addrs(frm)
-    subj = msg.get_header('Subject')
-    lnk = urllib.quote_plus(msg.get_message_id())
+    lnk = link_msg(msg)
+    tags = msg.get_tags()
     rs = show_msgs(msg.get_replies())
-    r += '<li><font color=%s>%s&mdash;<a href="%s/show/%s">%s</a></font> %s</li>' % (red,frm,prefix,lnk,subj,rs)
+    r += '<li><span style="%s">%s&mdash;%s</span> [%s] %s</li>' % (red,frm,lnk,tags,rs)
   r += '</ul>'
   return r
 env.globals['show_msgs'] = show_msgs
@@ -120,23 +133,38 @@ def mywalk(self):
             for subsubpart in mywalk(subpart):
                 yield subsubpart
         yield 'close-div'
-
+        
 class show:
   def GET(self,mid):
     web.header('Content-type', 'text/html')
-    web.header('Transfer-Encoding', 'chunked')
+    #web.header('Transfer-Encoding', 'chunked')
     db = Database()
     q = Query(db,'id:'+mid)
     m = list(q.search_messages())[0]
     template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
-    # FIXME come up with some brilliant plan for script tags and other dangerous things
+    tq = Query(db,'thread:'+m.get_thread_id())
+    thread = list(tq.search_threads())[0]
+    prv = None
+    found = False
+    nxt = None
+    for msg in thread.get_messages():
+        if m==msg:
+            found=True
+        elif not found:
+            prv=msg
+        else: # found message, but not on this loop
+            nxt=msg
+            break
+    # FIXME show now takes three queries instead of 1; can we yield the message body while computing the thread shape?
+    tq = Query(db,'thread:'+m.get_thread_id())
+    thread = list(tq.search_threads())[0]
     return template.render(m=m,
                            mid=mid,
                            title=m.get_header('Subject'),
                            prefix=prefix,
-			   sprefix=webprefix)
+			   sprefix=webprefix, prv=prv, nxt=nxt, thread=thread.get_toplevel_messages())
 
 def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
@@ -151,6 +179,14 @@ def decodeAnyway(txt,charset='ascii'):
     except UnicodeDecodeError:
       out = txt.decode('latin1')
   return out
+
+def require_protocol_prefix(attrs, new=False):
+    if not new:
+        return attrs
+    link_text = attrs[u'_text']
+    if link_text.startswith(('http:', 'https:', 'mailto:', 'git:')):
+        return attrs
+    return None
 
 def format_message_walk(msg,mid):
     counter = 0
@@ -176,6 +212,9 @@ def format_message_walk(msg,mid):
           yield '<div id="text-plain"><pre>'
           out = part.get_payload(decode=True)
           out = decodeAnyway(out,part.get_content_charset('ascii'))
+          out = cgi.escape(out)
+          out = out.encode('ascii', 'xmlcharrefreplace') 
+          if linkifyPlaintext: out = bleach.linkify(out,callbacks=[require_protocol_prefix])
           yield out
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
@@ -183,7 +222,8 @@ def format_message_walk(msg,mid):
           unb64 = part.get_payload(decode=True)
           decoded = decodeAnyway(unb64,part.get_content_charset('ascii'))
           cid_refd += find_cids(decoded)
-          part.set_payload(replace_cids(decoded,mid).encode(part.get_content_charset('ascii')))
+          part.set_payload(bleach.clean(replace_cids(decoded,mid),
+                                        tags=safe_tags).encode(part.get_content_charset('ascii')))
 	  (filename,cid) = link_to_cached_file(part,mid,counter)
 	  counter +=1
 	  yield '<iframe class="embedded-html" src="%s">' % os.path.join(prefix,cachedir,mid,filename)
