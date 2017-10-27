@@ -12,12 +12,6 @@
 {% for part in format_message(m.get_filename(),mid): %}
   {{ part|safe }}
 {% endfor %}
-<hr>
-<ul>
-  {% if prv: %} <li>Previous message (by thread): {{link_msg(prv)|safe}}</li> {% endif %}
-  {% if nxt: %} <li>Next message (by thread): {{link_msg(nxt)|safe}}</li> {% endif %}
-</ul>
-<h3>Thread:</h3>
-{{show_msgs(thread)|safe}}
+{{thread_nav(m)|safe}}
 <hr>
 {% endblock content %}

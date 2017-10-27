@@ -17,7 +17,8 @@ from jinja2 import Markup
 
 # Configuration options
 safe_tags = bleach.sanitizer.ALLOWED_TAGS + [u'div', u'span', u'p', u'br', u'table', u'tr', u'td', u'th']
-linkifyPlaintext = True
+linkify_plaintext = True
+show_thread_nav = True
 
 prefix = "https://nmweb.evenmere.org"
 webprefix = prefix + "/static"
@@ -144,6 +145,13 @@ class show:
     template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
+    return template.render(m=m,
+                           mid=mid,
+                           title=m.get_header('Subject'),
+                           prefix=prefix,
+			   sprefix=webprefix)
+
+def thread_nav(m):
     tq = Query(db,'thread:'+m.get_thread_id())
     thread = list(tq.search_threads())[0]
     prv = None
@@ -157,15 +165,16 @@ class show:
         else: # found message, but not on this loop
             nxt=msg
             break
+    yield "<hr><ul>"
+    if prv: yield "<li>Previous message (by thread): %s</li>" % link_msg(prv)
+    if nxt: yield "<li>Next message (by thread): %s</li>" % link_msg(nxt)
+    yield "</ul><h3>Thread:</h3>"""
     # FIXME show now takes three queries instead of 1; can we yield the message body while computing the thread shape?
     tq = Query(db,'thread:'+m.get_thread_id())
-    thread = list(tq.search_threads())[0]
-    return template.render(m=m,
-                           mid=mid,
-                           title=m.get_header('Subject'),
-                           prefix=prefix,
-			   sprefix=webprefix, prv=prv, nxt=nxt, thread=thread.get_toplevel_messages())
-
+    thread = list(tq.search_threads())[0].get_toplevel_messages()
+    return show_msgs(thread)
+env.globals['thread_nav'] = thread_nav
+        
 def format_message(fn,mid):
     msg = MaildirMessage(open(fn))
     return format_message_walk(msg,mid)
@@ -214,7 +223,7 @@ def format_message_walk(msg,mid):
           out = decodeAnyway(out,part.get_content_charset('ascii'))
           out = cgi.escape(out)
           out = out.encode('ascii', 'xmlcharrefreplace') 
-          if linkifyPlaintext: out = bleach.linkify(out,callbacks=[require_protocol_prefix])
+          if linkify_plaintext: out = bleach.linkify(out,callbacks=[require_protocol_prefix])
           yield out
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
