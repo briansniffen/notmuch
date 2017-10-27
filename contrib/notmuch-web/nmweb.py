@@ -17,8 +17,8 @@ from jinja2 import Markup
 
 # Configuration options
 safe_tags = bleach.sanitizer.ALLOWED_TAGS + [u'div', u'span', u'p', u'br', u'table', u'tr', u'td', u'th']
-linkify_plaintext = True
-show_thread_nav = True
+linkify_plaintext = True # delays page load by about 0.02s of 0.20s budget
+show_thread_nav = True   # delays page load by about 0.04s of 0.20s budget
 
 prefix = "https://nmweb.evenmere.org"
 webprefix = prefix + "/static"
@@ -152,6 +152,8 @@ class show:
 			   sprefix=webprefix)
 
 def thread_nav(m):
+    if not show_thread_nav: return
+    db = Database()
     tq = Query(db,'thread:'+m.get_thread_id())
     thread = list(tq.search_threads())[0]
     prv = None
@@ -172,7 +174,8 @@ def thread_nav(m):
     # FIXME show now takes three queries instead of 1; can we yield the message body while computing the thread shape?
     tq = Query(db,'thread:'+m.get_thread_id())
     thread = list(tq.search_threads())[0].get_toplevel_messages()
-    return show_msgs(thread)
+    yield show_msgs(thread)
+    return
 env.globals['thread_nav'] = thread_nav
         
 def format_message(fn,mid):
@@ -193,10 +196,16 @@ def require_protocol_prefix(attrs, new=False):
     if not new:
         return attrs
     link_text = attrs[u'_text']
-    if link_text.startswith(('http:', 'https:', 'mailto:', 'git:')):
+    if link_text.startswith(('http:', 'https:', 'mailto:', 'git:', 'id:')):
         return attrs
     return None
 
+# Bleach doesn't even try to linkify id:... text, so no point invoking this yet
+def modify_id_links(attrs, new=False):
+    if attrs[(None, u'href')].startswith(u'id:'):
+        attrs[(None, u'href')] = prefix + "/show/" + attrs[(None, u'href')][3:]
+    return attrs
+        
 def format_message_walk(msg,mid):
     counter = 0
     cid_refd = []
