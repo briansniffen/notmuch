@@ -14,7 +14,12 @@ import bleach
 import cgi
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
-
+try:
+    import bjoern # from https://github.com/jonashaag/bjoern/
+    use_bjoern=True
+except:
+    use_bjoern=False
+    
 # Configuration options
 safe_tags = bleach.sanitizer.ALLOWED_TAGS + [u'div', u'span', u'p', u'br', u'table', u'tr', u'td', u'th']
 linkify_plaintext = True # delays page load by about 0.02s of 0.20s budget
@@ -321,4 +326,7 @@ def link_to_cached_file(part,mid,counter):
 
 if __name__ == '__main__': 
     app = web.application(urls, globals())
-    app.run()
+    if use_bjoern:
+        bjoern.run(app.wsgifunc(),"127.0.0.1", 8080)
+    else:
+        app.run()
