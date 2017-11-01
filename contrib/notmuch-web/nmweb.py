@@ -51,7 +51,6 @@ env.filters['url'] = urlencode_filter
 class index:
   def GET(self):
     web.header('Content-type', 'text/html')
-    #web.header('Transfer-Encoding', 'chunked')
     base = env.get_template('base.html')
     template = env.get_template('index.html')
     db = Database()
@@ -79,9 +78,8 @@ class search:
       redir = True
       terms += ' date:%s..%s' % (afters,befores)
     if redir:
-      raise web.seeother('/search/%s' % urllib.quote_plus(terms))
+      raise web.seeother('/search/%s' % urllib.quote_plus(terms.encode('utf8')))
     web.header('Content-type', 'text/html')
-    #web.header('Transfer-Encoding', 'chunked')
     db = Database()
     q = Query(db,terms)
     q.set_sort(Query.SORT.NEWEST_FIRST)
@@ -109,7 +107,7 @@ def mailto_addrs(frm):
 env.globals['mailto_addrs'] = mailto_addrs
 
 def link_msg(msg):
-    lnk = urllib.quote_plus(msg.get_message_id())
+    lnk = urllib.quote_plus(msg.get_message_id().encode('utf8'))
     subj = msg.get_header('Subject')
     out = '<a href="%s/show/%s">%s</a>' % (prefix,lnk,subj)
     return out
@@ -143,10 +141,12 @@ def mywalk(self):
 class show:
   def GET(self,mid):
     web.header('Content-type', 'text/html')
-    #web.header('Transfer-Encoding', 'chunked')
     db = Database()
     q = Query(db,'id:'+mid)
-    m = list(q.search_messages())[0]
+    try:
+        m = list(q.search_messages())[0]
+    except:
+        raise web.notfound("No such message id.")
     template = env.get_template('show.html')
     # FIXME add reply-all link with email.urils.getaddresses
     # FIXME add forward link using mailto with body parameter?
@@ -210,21 +210,28 @@ def modify_id_links(attrs, new=False):
     if attrs[(None, u'href')].startswith(u'id:'):
         attrs[(None, u'href')] = prefix + "/show/" + attrs[(None, u'href')][3:]
     return attrs
-        
+
+def css_part_id(content_type, parts=[]):
+    c = string.replace(content_type, '/', '-')
+    out = "-".join(parts + [c])
+    return out
+
 def format_message_walk(msg,mid):
     counter = 0
     cid_refd = []
+    parts = ['main']
     for part in mywalk(msg):
-      if part=='close-div': 
+      if part=='close-div':
+          parts.pop()
           yield '</div>'
-      elif part.get_content_maintype() == 'multipart': 
+      elif part.get_content_maintype() == 'multipart':
+        parts.append(part.get_content_subtype())
         yield '<div class="multipart-%s">' % part.get_content_subtype()
         if part.get_content_subtype() == 'alternative':
           yield '<ul>'
           for subpart in part.get_payload():
             yield ('<li><a href="#%s">%s</a></li>' %
-                   (string.replace(subpart.get_content_type(),
-                                   '/', '-'),
+                   (css_part_id(subpart.get_content_type(),parts),
                     subpart.get_content_type()))
           yield '</ul>'
       elif part.get_content_type() == 'message/rfc822':
@@ -232,7 +239,8 @@ def format_message_walk(msg,mid):
           yield '<div class="message-rfc822">'
       elif part.get_content_maintype() == 'text':
         if part.get_content_subtype() == 'plain':
-          yield '<div id="text-plain"><pre>'
+          yield '<div id="%s">' % css_part_id(part.get_content_type(),parts)
+          yield '<pre>'
           out = part.get_payload(decode=True)
           out = decodeAnyway(out,part.get_content_charset('ascii'))
           out = cgi.escape(out)
@@ -241,18 +249,18 @@ def format_message_walk(msg,mid):
           yield out
           yield '</pre></div>'
         elif part.get_content_subtype() == 'html':
-          yield '<div id="text-html">'
+          yield '<div id="%s">' % css_part_id(part.get_content_type(),parts)
           unb64 = part.get_payload(decode=True)
           decoded = decodeAnyway(unb64,part.get_content_charset('ascii'))
           cid_refd += find_cids(decoded)
           part.set_payload(bleach.clean(replace_cids(decoded,mid),
-                                        tags=safe_tags).encode(part.get_content_charset('ascii')))
+                                        tags=safe_tags).encode(part.get_content_charset('ascii'), 'xmlcharrefreplace'))
 	  (filename,cid) = link_to_cached_file(part,mid,counter)
 	  counter +=1
-	  yield '<iframe class="embedded-html" src="%s">' % os.path.join(prefix,cachedir,mid,filename)
+	  yield '<iframe class="embedded-html" src="%s"></iframe>' % os.path.join(prefix,cachedir,mid,filename)
           yield '</div>'
         else:
-          yield '<div id="%s">' % string.replace(part.get_content_type(),'/','-')
+          yield '<div id="%s">' % css_part_id(part.get_content_type(),parts)
           (filename,cid) = link_to_cached_file(part,mid,counter)
           counter += 1
           yield '<a href="%s">%s (%s)</a>' % (os.path.join(prefix,
@@ -325,6 +333,7 @@ def link_to_cached_file(part,mid,counter):
         return (filename,None)
 
 if __name__ == '__main__': 
+    web.config.debug=True
     app = web.application(urls, globals())
     if use_bjoern:
         bjoern.run(app.wsgifunc(),"127.0.0.1", 8080)
