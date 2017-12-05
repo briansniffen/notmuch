@@ -190,7 +190,7 @@ def format_message(fn,mid):
 def decodeAnyway(txt,charset='ascii'):
   try:
     out = txt.decode(charset)
-  except UnicodeDecodeError:
+  except:
     try:
       out = txt.decode('utf-8')
     except UnicodeDecodeError:
@@ -225,8 +225,8 @@ def format_message_walk(msg,mid):
           parts.pop()
           yield '</div>'
       elif part.get_content_maintype() == 'multipart':
+        yield '<div class="multipart-%s" id="%s">' % (part.get_content_subtype(),css_part_id(part.get_content_type(),parts))
         parts.append(part.get_content_subtype())
-        yield '<div class="multipart-%s">' % part.get_content_subtype()
         if part.get_content_subtype() == 'alternative':
           yield '<ul>'
           for subpart in part.get_payload():
