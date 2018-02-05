@@ -80,9 +80,12 @@ class search:
       befores = web.input(befores=None).befores
     else:
       befores = '4294967296' # 2^32
-    if int(afters) > 0 or int(befores) < 4294967296:
-      redir = True
-      terms += ' date:%s..%s' % (afters, befores)
+    try:
+      if int(afters) > 0 or int(befores) < 4294967296:
+        redir = True
+        terms += ' date:%s..%s' % (afters, befores)
+    except ValueError:
+      pass
     if redir:
       raise web.seeother('/search/%s' % quote_plus(terms.encode('utf8')))
     web.header('Content-type', 'text/html')
