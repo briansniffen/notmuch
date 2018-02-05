@@ -2,17 +2,18 @@
 
 from __future__ import absolute_import
 
-import web
-from notmuch import Database, Query, Message
 import urllib
 from datetime import datetime
 from mailbox import MaildirMessage
-import os
 import mimetypes
 import email
 import re
-import bleach
 import cgi
+import os
+
+import bleach
+import web
+from notmuch import Database, Query, Message
 from jinja2 import Environment, FileSystemLoader # FIXME to PackageLoader
 from jinja2 import Markup
 try:
