@@ -2,7 +2,10 @@
 
 from __future__ import absolute_import
 
-import urllib
+try:
+  from urllib.parse import quote_plus
+except ImportError:
+  from urllib import quote_plus
 from datetime import datetime
 from mailbox import MaildirMessage
 import mimetypes
@@ -47,7 +50,7 @@ def urlencode_filter(s):
   if type(s) == 'Markup':
     s = s.unescape()
   s = s.encode('utf8')
-  s = urllib.quote_plus(s)
+  s = quote_plus(s)
   return Markup(s)
 env.filters['url'] = urlencode_filter
 
@@ -81,7 +84,7 @@ class search:
       redir = True
       terms += ' date:%s..%s' % (afters, befores)
     if redir:
-      raise web.seeother('/search/%s' % urllib.quote_plus(terms.encode('utf8')))
+      raise web.seeother('/search/%s' % quote_plus(terms.encode('utf8')))
     web.header('Content-type', 'text/html')
     db = Database()
     q = Query(db, terms)
@@ -110,7 +113,7 @@ def mailto_addrs(frm):
 env.globals['mailto_addrs'] = mailto_addrs
 
 def link_msg(msg):
-  lnk = urllib.quote_plus(msg.get_message_id().encode('utf8'))
+  lnk = quote_plus(msg.get_message_id().encode('utf8'))
   subj = msg.get_header('Subject')
   out = '<a href="%s/show/%s">%s</a>' % (prefix, lnk, subj)
   return out
