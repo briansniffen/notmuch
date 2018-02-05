@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import web
 from notmuch import Database,Query,Message
 import urllib
