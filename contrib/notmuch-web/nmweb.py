@@ -324,7 +324,8 @@ def link_to_cached_file(part, mid, counter):
       data = part.get_payload(decode=True)
     except:
       data = part.get_payload(decode=False)
-  if data: fp.write(data)
+  if data:
+    fp.write(data)
   fp.close()
   if 'Content-ID' in part:
     cid = part['Content-ID']
