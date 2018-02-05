@@ -58,7 +58,7 @@ class index:
     tags = db.get_all_tags()
     return template.render(tags=tags,
                            title="Notmuch webmail",
-			   prefix=prefix,
+                           prefix=prefix,
                            sprefix=webprefix)
 
 class search:
@@ -90,7 +90,7 @@ class search:
                              ts=ts,
                              title=terms,
                              prefix=prefix,
-			     sprefix=webprefix)
+                             sprefix=webprefix)
 
 def format_time_range(start,end):
   if end-start < (60*60*24):
@@ -155,7 +155,7 @@ class show:
                            mid=mid,
                            title=m.get_header('Subject'),
                            prefix=prefix,
-			   sprefix=webprefix)
+                           sprefix=webprefix)
 
 def thread_nav(m):
     if not show_thread_nav: return
@@ -256,9 +256,9 @@ def format_message_walk(msg,mid):
           cid_refd += find_cids(decoded)
           part.set_payload(bleach.clean(replace_cids(decoded,mid),
                                         tags=safe_tags).encode(part.get_content_charset('ascii'), 'xmlcharrefreplace'))
-	  (filename,cid) = link_to_cached_file(part,mid,counter)
-	  counter +=1
-	  yield '<iframe class="embedded-html" src="%s"></iframe>' % os.path.join(prefix,cachedir,mid,filename)
+          (filename,cid) = link_to_cached_file(part,mid,counter)
+          counter +=1
+          yield '<iframe class="embedded-html" src="%s"></iframe>' % os.path.join(prefix,cachedir,mid,filename)
           yield '</div>'
         else:
           yield '<div id="%s">' % css_part_id(part.get_content_type(),parts)
