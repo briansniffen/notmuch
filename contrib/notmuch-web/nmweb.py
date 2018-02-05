@@ -10,7 +10,6 @@ from mailbox import MaildirMessage
 import os
 import mimetypes
 import email
-import string
 import re
 import bleach
 import cgi
@@ -214,7 +213,7 @@ def modify_id_links(attrs, new=False):
     return attrs
 
 def css_part_id(content_type, parts=[]):
-    c = string.replace(content_type, '/', '-')
+    c = content_type.replace('/', '-')
     out = "-".join(parts + [c])
     return out
 
@@ -293,7 +292,7 @@ def format_message_walk(msg,mid):
 env.globals['format_message'] = format_message
 
 def replace_cids(body,mid):
-    return string.replace(body,'cid:',os.path.join(prefix,cachedir,mid)+'/')
+    return body.replace('cid:',os.path.join(prefix,cachedir,mid)+'/')
 
 def find_cids(body):
     return re.findall(r'cid:([^ "\'>]*)', body)
