@@ -7,7 +7,7 @@
 
 typedef struct _notmuch_crypto {
     bool verify;
-    bool decrypt;
+    notmuch_decryption_policy_t decrypt;
 #if (GMIME_MAJOR_VERSION < 3)
     GMimeCryptoContext* gpgctx;
     GMimeCryptoContext* pkcs7ctx;
@@ -16,7 +16,9 @@ typedef struct _notmuch_crypto {
 } _notmuch_crypto_t;
 
 GMimeObject *
-_notmuch_crypto_decrypt (notmuch_message_t *message,
+_notmuch_crypto_decrypt (bool *attempted,
+			 notmuch_decryption_policy_t decrypt,
+			 notmuch_message_t *message,
 			 GMimeCryptoContext* crypto_ctx,
 			 GMimeMultipartEncrypted *part,
 			 GMimeDecryptResult **decrypt_result,

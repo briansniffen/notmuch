@@ -70,16 +70,19 @@ of its normal activity.
     properties will be set on the message as a whole.
 
     If notmuch never tried to decrypt an encrypted message during
-    indexing (which is the default, see ``index.try_decrypt`` in
+    indexing (which is the default, see ``index.decrypt`` in
     **notmuch-config(1)**), then this property will not be set on that
     message.
 
 **session-key**
 
     When **notmuch-show(1)** or **nomtuch-reply** encounters a message
-    with an encrypted part and ``--decrypt`` is set, if notmuch finds a
-    ``session-key`` property associated with the message, it will try
-    that stashed session key for decryption.
+    with an encrypted part, if notmuch finds a ``session-key``
+    property associated with the message, it will try that stashed
+    session key for decryption.
+
+    If you do not want to use any stashed session keys that might be
+    present, you should pass those programs ``--decrypt=false``.
 
     Using a stashed session key with "notmuch show" will speed up
     rendering of long encrypted threads.  It also allows the user to
@@ -94,6 +97,10 @@ of its normal activity.
     permits full byte-for-byte reconstruction of the cleartext
     message.  This includes attachments, cryptographic signatures, and
     other material that cannot be reconstructed from the index alone.
+
+    See ``index.decrypt`` in **notmuch-config(1)** for more
+    details about how to set notmuch's policy on when to store session
+    keys.
 
     The session key should be in the ASCII text form produced by
     GnuPG.  For OpenPGP, that consists of a decimal representation of

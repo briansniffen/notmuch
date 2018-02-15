@@ -51,19 +51,28 @@ Supported options for **insert** include
     ``--no-hooks``
         Prevent hooks from being run.
 
-    ``--try-decrypt=(true|false)``
+    ``--decrypt=(true|nostash|auto|false)``
 
-        If true and the message is encrypted, try to decrypt the
-        message while indexing.  If decryption is successful, index
-        the cleartext itself.  Either way, the message is always
-        stored to disk in its original form (ciphertext).  Be aware
-        that the index is likely sufficient to reconstruct the
+        If ``true`` and the message is encrypted, try to decrypt the
+        message while indexing, stashing any session keys discovered.
+        If ``auto``, and notmuch already knows about a session key for
+        the message, it will try decrypting using that session key but
+        will not try to access the user's secret keys.  If decryption
+        is successful, index the cleartext itself.  Either way, the
+        message is always stored to disk in its original form
+        (ciphertext).
+
+        ``nostash`` is the same as ``true`` except that it will not
+        stash newly-discovered session keys in the database.
+
+        Be aware that the index is likely sufficient (and a stashed
+        session key is certainly sufficient) to reconstruct the
         cleartext of the message itself, so please ensure that the
         notmuch message index is adequately protected. DO NOT USE
-        ``--try-decrypt=true`` without considering the security of
-        your index.
+        ``--decrypt=true`` or ``--decrypt=nostash`` without
+        considering the security of your index.
 
-        See also ``index.try_decrypt`` in **notmuch-config(1)**.
+        See also ``index.decrypt`` in **notmuch-config(1)**.
 
 EXIT STATUS
 ===========

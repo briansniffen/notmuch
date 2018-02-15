@@ -414,9 +414,12 @@ struct mime_node {
 
 /* Construct a new MIME node pointing to the root message part of
  * message. If crypto->verify is true, signed child parts will be
- * verified. If crypto->decrypt is true, encrypted child parts will be
- * decrypted.  If the crypto contexts (crypto->gpgctx or
- * crypto->pkcs7) are NULL, they will be lazily initialized.
+ * verified. If crypto->decrypt is NOTMUCH_DECRYPT_TRUE, encrypted
+ * child parts will be decrypted using either stored session keys or
+ * asymmetric crypto.  If crypto->decrypt is NOTMUCH_DECRYPT_AUTO,
+ * only session keys will be tried.  If the crypto contexts
+ * (crypto->gpgctx or crypto->pkcs7) are NULL, they will be lazily
+ * initialized.
  *
  * Return value:
  *
@@ -500,8 +503,8 @@ int notmuch_minimal_options (const char* subcommand_name,
 /* the state chosen by the user invoking one of the notmuch
  * subcommands that does indexing */
 struct _notmuch_client_indexing_cli_choices {
-    bool try_decrypt;
-    bool try_decrypt_set;
+    int decrypt_policy;
+    bool decrypt_policy_set;
     notmuch_indexopts_t * opts;
 };
 extern struct _notmuch_client_indexing_cli_choices indexing_cli_choices;

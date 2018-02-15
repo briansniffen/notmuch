@@ -43,17 +43,23 @@ Supported options for **new** include
     ``--quiet``
         Do not print progress or results.
 
-    ``--try-decrypt=(true|false)``
+    ``--decrypt=(true|nostash|auto|false)``
 
-        If true, when encountering an encrypted message, try to
-        decrypt it while indexing.  If decryption is successful, index
-        the cleartext itself.  Be aware that the index is likely
-        sufficient to reconstruct the cleartext of the message itself,
-        so please ensure that the notmuch message index is adequately
-        protected.  DO NOT USE ``--try-decrypt=true`` without
-        considering the security of your index.
+        If ``true``, when encountering an encrypted message, try to
+        decrypt it while indexing, and stash any discovered session
+        keys.  If ``auto``, try to use any session key already known
+        to belong to this message, but do not attempt to use the
+        user's secret keys.  If decryption is successful, index the
+        cleartext of the message.
 
-        See also ``index.try_decrypt`` in **notmuch-config(1)**.
+        Be aware that the index is likely sufficient (and the session
+        key is certainly sufficient) to reconstruct the cleartext of
+        the message itself, so please ensure that the notmuch message
+        index is adequately protected.  DO NOT USE ``--decrypt=true``
+        or ``--decrypt=nostash`` without considering the security of
+        your index.
+
+        See also ``index.decrypt`` in **notmuch-config(1)**.
 
 EXIT STATUS
 ===========
