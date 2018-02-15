@@ -88,7 +88,7 @@ class search:
     try:
       if int(afters) > 0 or int(befores) < 4294967296:
         redir = True
-        terms += ' date:%s..%s' % (afters, befores)
+        terms += ' date:@%s..@%s' % (int(afters), int(befores))
     except ValueError:
       pass
     if redir:
