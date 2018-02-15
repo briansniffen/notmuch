@@ -261,7 +261,7 @@ def format_message_walk(msg, mid):
         out = part.get_payload(decode=True)
         out = decodeAnyway(out, part.get_content_charset('ascii'))
         out = cgi.escape(out)
-        out = out.encode('ascii', 'xmlcharrefreplace')
+        out = out.encode('ascii', 'xmlcharrefreplace').decode('ascii')
         if linkify_plaintext: out = bleach.linkify(out, callbacks=[require_protocol_prefix])
         yield out
         yield '</pre></div>'
