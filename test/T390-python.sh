@@ -5,6 +5,7 @@ test_description="python bindings"
 test_require_external_prereq ${NOTMUCH_PYTHON}
 
 add_email_corpus
+add_gnupg_home
 
 test_begin_subtest "compare thread ids"
 test_python <<EOF
@@ -72,6 +73,125 @@ for m in q_new.search_messages():
 EOF
 
 notmuch search --sort=oldest-first --output=messages "tučňáččí" | sed s/^id:// > EXPECTED
+test_expect_equal_file EXPECTED OUTPUT
+
+# TODO currently these tests for setting and getting config values are
+# somewhat interdependent.  This is because the config values stored in the
+# database are not cleaned up after each test, so they remain there for the
+# next test.  The ./README file states that this can happen so it seems kind
+# of ok.
+
+test_begin_subtest "set and get config values"
+test_python <<'EOF'
+import notmuch
+db = notmuch.Database(mode=notmuch.Database.MODE.READ_WRITE)
+db.set_config('testkey1', 'testvalue1')
+db.set_config('testkey2', 'testvalue2')
+v1 = db.get_config('testkey1')
+v2 = db.get_config('testkey2')
+print('testkey1 = ' + v1)
+print('testkey2 = ' + v2)
+EOF
+cat <<'EOF' >EXPECTED
+testkey1 = testvalue1
+testkey2 = testvalue2
+EOF
+test_expect_equal_file EXPECTED OUTPUT
+
+test_begin_subtest "get_configs with no match returns empty generator"
+test_python <<'EOF'
+import notmuch
+db = notmuch.Database()
+v = db.get_configs('nonexistent')
+print(list(v) == [])
+EOF
+test_expect_equal "$(cat OUTPUT)" "True"
+
+test_begin_subtest "get_configs with no arguments returns all pairs"
+test_python <<'EOF'
+import notmuch
+db = notmuch.Database(mode=notmuch.Database.MODE.READ_WRITE)
+db.set_config("zzzafter", "afterval")
+db.set_config("aaabefore", "beforeval")
+v = db.get_configs()
+for index, keyval in enumerate(v):
+    key, val = keyval
+    print('{}: {} => {}'.format(index, key, val))
+EOF
+cat <<'EOF' >EXPECTED
+0: aaabefore => beforeval
+1: testkey1 => testvalue1
+2: testkey2 => testvalue2
+3: zzzafter => afterval
+EOF
+test_expect_equal_file EXPECTED OUTPUT
+
+test_begin_subtest "get_configs prefix is used to match keys"
+test_python <<'EOF'
+import notmuch
+db = notmuch.Database(mode=notmuch.Database.MODE.READ_WRITE)
+db.set_config('testkey1', 'testvalue1')
+db.set_config('testkey2', 'testvalue2')
+v = db.get_configs('testkey')
+for index, keyval in enumerate(v):
+    key, val = keyval
+    print('{}: {} => {}'.format(index, key, val))
+EOF
+cat <<'EOF' >EXPECTED
+0: testkey1 => testvalue1
+1: testkey2 => testvalue2
+EOF
+test_expect_equal_file EXPECTED OUTPUT
+
+test_begin_subtest "set_config with no value will unset config entries"
+test_python <<'EOF'
+import notmuch
+db = notmuch.Database(mode=notmuch.Database.MODE.READ_WRITE)
+db.set_config('testkey1', '')
+db.set_config('testkey2', '')
+db.set_config("zzzafter", '')
+db.set_config("aaabefore", '')
+v = db.get_configs()
+print(list(v) == [])
+EOF
+test_expect_equal "$(cat OUTPUT)" "True"
+
+mkdir -p "${MAIL_DIR}/cur"
+fname="${MAIL_DIR}/cur/simplemsg.eml"
+cat <<EOF > "$fname"
+From: test_suite@notmuchmail.org
+To: test_suite@notmuchmail.org
+Subject: encrypted message
+Date: Sat, 01 Jan 2000 12:00:00 +0000
+Message-ID: <simplemsg@crypto.notmuchmail.org>
+MIME-Version: 1.0
+Content-Type: multipart/encrypted; boundary="=-=-=";
+	protocol="application/pgp-encrypted"
+
+--=-=-=
+Content-Type: application/pgp-encrypted
+
+Version: 1
+
+--=-=-=
+Content-Type: application/octet-stream
+
+$(printf 'Content-Type: text/plain\n\nThis is the sekrit message\n' | gpg --no-tty --batch --quiet --trust-model=always --encrypt --armor --recipient test_suite@notmuchmail.org)
+--=-=-=--
+EOF
+
+test_begin_subtest "index message with decryption"
+test_python <<EOF
+import notmuch
+db = notmuch.Database(mode=notmuch.Database.MODE.READ_WRITE)
+(m, status) = db.index_file('$fname', decrypt_policy=notmuch.Database.DECRYPTION_POLICY.TRUE)
+if status == notmuch.errors.STATUS.DUPLICATE_MESSAGE_ID:
+   print("got duplicate message")
+q_new = notmuch.Query(db, 'sekrit')
+for m in q_new.search_messages():
+    print(m.get_filename())
+EOF
+echo "$fname" > EXPECTED
 test_expect_equal_file EXPECTED OUTPUT
 
 test_done

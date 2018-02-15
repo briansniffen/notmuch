@@ -446,15 +446,11 @@ format_part_sigstatus_sprinter (sprinter_t *sp, mime_node_t *node)
 		sp->map_key (sp, "expires");
 		sp->integer (sp, expires);
 	    }
-	    /* output user id only if validity is FULL or ULTIMATE. */
-	    /* note that gmime is using the term "trust" here, which
-	     * is WRONG.  It's actually user id "validity". */
 	    if (certificate) {
-		const char *name = g_mime_certificate_get_uid (certificate);
-		GMimeCertificateTrust trust = g_mime_certificate_get_trust (certificate);
-		if (name && (trust == GMIME_CERTIFICATE_TRUST_FULLY || trust == GMIME_CERTIFICATE_TRUST_ULTIMATE)) {
+		const char *uid = g_mime_certificate_get_valid_userid (certificate);
+		if (uid) {
 		    sp->map_key (sp, "userid");
-		    sp->string (sp, name);
+		    sp->string (sp, uid);
 		}
 	    }
 	} else if (certificate) {
@@ -1083,6 +1079,7 @@ notmuch_show_command (notmuch_config_t *config, int argc, char *argv[])
 	.part = -1,
 	.omit_excluded = true,
 	.output_body = true,
+	.crypto = { .decrypt = NOTMUCH_DECRYPT_AUTO },
     };
     int format = NOTMUCH_FORMAT_NOT_SPECIFIED;
     bool exclude = true;
@@ -1102,7 +1099,12 @@ notmuch_show_command (notmuch_config_t *config, int argc, char *argv[])
 	{ .opt_bool = &params.entire_thread, .name = "entire-thread",
 	  .present = &entire_thread_set },
 	{ .opt_int = &params.part, .name = "part" },
-	{ .opt_bool = &params.crypto.decrypt, .name = "decrypt" },
+	{ .opt_keyword = (int*)(&params.crypto.decrypt), .name = "decrypt",
+	  .keyword_no_arg_value = "true", .keywords =
+	  (notmuch_keyword_t []){ { "false", NOTMUCH_DECRYPT_FALSE },
+				  { "auto", NOTMUCH_DECRYPT_AUTO },
+				  { "true", NOTMUCH_DECRYPT_NOSTASH },
+				  { 0, 0 } } },
 	{ .opt_bool = &params.crypto.verify, .name = "verify" },
 	{ .opt_bool = &params.output_body, .name = "body" },
 	{ .opt_bool = &params.include_html, .name = "include-html" },
@@ -1116,8 +1118,8 @@ notmuch_show_command (notmuch_config_t *config, int argc, char *argv[])
 
     notmuch_process_shared_options (argv[0]);
 
-    /* decryption implies verification */
-    if (params.crypto.decrypt)
+    /* explicit decryption implies verification */
+    if (params.crypto.decrypt == NOTMUCH_DECRYPT_NOSTASH)
 	params.crypto.verify = true;
 
     /* specifying a part implies single message display */

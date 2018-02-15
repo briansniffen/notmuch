@@ -140,13 +140,17 @@ void _notmuch_crypto_cleanup (unused(_notmuch_crypto_t *crypto))
 #endif
 
 GMimeObject *
-_notmuch_crypto_decrypt (notmuch_message_t *message,
+_notmuch_crypto_decrypt (bool *attempted,
+			 notmuch_decryption_policy_t decrypt,
+			 notmuch_message_t *message,
 			 g_mime_3_unused(GMimeCryptoContext* crypto_ctx),
 			 GMimeMultipartEncrypted *part,
 			 GMimeDecryptResult **decrypt_result,
 			 GError **err)
 {
     GMimeObject *ret = NULL;
+    if (decrypt == NOTMUCH_DECRYPT_FALSE)
+	return NULL;
 
     /* the versions of notmuch that can support session key decryption */
 #if HAVE_GMIME_SESSION_KEYS
@@ -159,6 +163,8 @@ _notmuch_crypto_decrypt (notmuch_message_t *message,
 		g_error_free (*err);
 		*err = NULL;
 	    }
+	    if (attempted)
+		*attempted = true;
 #if (GMIME_MAJOR_VERSION < 3)
 	    ret = g_mime_multipart_encrypted_decrypt_session (part,
 							      crypto_ctx,
@@ -184,11 +190,31 @@ _notmuch_crypto_decrypt (notmuch_message_t *message,
 	g_error_free (*err);
 	*err = NULL;
     }
+
+    if (decrypt == NOTMUCH_DECRYPT_AUTO)
+	return ret;
+
+    if (attempted)
+	*attempted = true;
 #if (GMIME_MAJOR_VERSION < 3)
+#if HAVE_GMIME_SESSION_KEYS
+    gboolean oldgetsk = g_mime_crypto_context_get_retrieve_session_key (crypto_ctx);
+    gboolean newgetsk = (decrypt == NOTMUCH_DECRYPT_TRUE && decrypt_result);
+    if (newgetsk != oldgetsk)
+	/* This could return an error, but we can't do anything about it, so ignore it */
+	g_mime_crypto_context_set_retrieve_session_key (crypto_ctx, newgetsk, NULL);
+#endif
     ret = g_mime_multipart_encrypted_decrypt(part, crypto_ctx,
 					     decrypt_result, err);
+#if HAVE_GMIME_SESSION_KEYS
+    if (newgetsk != oldgetsk)
+	g_mime_crypto_context_set_retrieve_session_key (crypto_ctx, oldgetsk, NULL);
+#endif
 #else
-    ret = g_mime_multipart_encrypted_decrypt(part, GMIME_DECRYPT_NONE, NULL,
+    GMimeDecryptFlags flags = GMIME_DECRYPT_NONE;
+    if (decrypt == NOTMUCH_DECRYPT_TRUE && decrypt_result)
+	flags |= GMIME_DECRYPT_EXPORT_SESSION_KEY;
+    ret = g_mime_multipart_encrypted_decrypt(part, flags, NULL,
 					     decrypt_result, err);
 #endif
     return ret;

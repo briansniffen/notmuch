@@ -525,7 +525,7 @@ _index_encrypted_mime_part (notmuch_message_t *message,
     notmuch_database_t * notmuch = NULL;
     GMimeObject *clear = NULL;
 
-    if (!indexopts || !notmuch_indexopts_get_try_decrypt (indexopts))
+    if (!indexopts || (notmuch_indexopts_get_decrypt_policy (indexopts) == NOTMUCH_DECRYPT_FALSE))
 	return;
 
     notmuch = _notmuch_message_database (message);
@@ -548,17 +548,41 @@ _index_encrypted_mime_part (notmuch_message_t *message,
 	}
     }
 #endif
-    clear = _notmuch_crypto_decrypt (message, crypto_ctx, encrypted_data, NULL, &err);
-    if (err) {
-	_notmuch_database_log (notmuch, "Failed to decrypt during indexing. (%d:%d) [%s]\n",
-			       err->domain, err->code, err->message);
-	g_error_free(err);
+    bool attempted = false;
+    GMimeDecryptResult *decrypt_result = NULL;
+    bool get_sk = (HAVE_GMIME_SESSION_KEYS && notmuch_indexopts_get_decrypt_policy (indexopts) == NOTMUCH_DECRYPT_TRUE);
+    clear = _notmuch_crypto_decrypt (&attempted, notmuch_indexopts_get_decrypt_policy (indexopts),
+				     message, crypto_ctx, encrypted_data, get_sk ? &decrypt_result : NULL, &err);
+    if (!attempted)
+	return;
+    if (err || !clear) {
+	if (decrypt_result)
+	    g_object_unref (decrypt_result);
+	if (err) {
+	    _notmuch_database_log (notmuch, "Failed to decrypt during indexing. (%d:%d) [%s]\n",
+				   err->domain, err->code, err->message);
+	    g_error_free(err);
+	} else {
+	    _notmuch_database_log (notmuch, "Failed to decrypt during indexing. (unknown error)\n");
+	}
 	/* Indicate that we failed to decrypt during indexing */
 	status = notmuch_message_add_property (message, "index.decryption", "failure");
 	if (status)
 	    _notmuch_database_log_append (notmuch, "failed to add index.decryption "
 					  "property (%d)\n", status);
 	return;
+    }
+    if (decrypt_result) {
+#if HAVE_GMIME_SESSION_KEYS
+	if (get_sk) {
+	    status = notmuch_message_add_property (message, "session-key",
+						   g_mime_decrypt_result_get_session_key (decrypt_result));
+	    if (status)
+		_notmuch_database_log (notmuch, "failed to add session-key "
+				       "property (%d)\n", status);
+	}
+#endif
+	g_object_unref (decrypt_result);
     }
     _index_mime_part (message, indexopts, clear);
     g_object_unref (clear);

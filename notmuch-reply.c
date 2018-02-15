@@ -700,6 +700,7 @@ notmuch_reply_command (notmuch_config_t *config, int argc, char *argv[])
     int opt_index;
     notmuch_show_params_t params = {
 	.part = -1,
+	.crypto = { .decrypt = NOTMUCH_DECRYPT_AUTO },
     };
     int format = FORMAT_DEFAULT;
     int reply_all = true;
@@ -716,7 +717,12 @@ notmuch_reply_command (notmuch_config_t *config, int argc, char *argv[])
 	  (notmuch_keyword_t []){ { "all", true },
 				  { "sender", false },
 				  { 0, 0 } } },
-	{ .opt_bool = &params.crypto.decrypt, .name = "decrypt" },
+	{ .opt_keyword = (int*)(&params.crypto.decrypt), .name = "decrypt",
+	  .keyword_no_arg_value = "true", .keywords =
+	  (notmuch_keyword_t []){ { "false", NOTMUCH_DECRYPT_FALSE },
+				  { "auto", NOTMUCH_DECRYPT_AUTO },
+				  { "true", NOTMUCH_DECRYPT_NOSTASH },
+				  { 0, 0 } } },
 	{ .opt_inherit = notmuch_shared_options },
 	{ }
     };

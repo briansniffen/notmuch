@@ -99,9 +99,14 @@ int notmuch_minimal_options (const char *subcommand_name,
 
 struct _notmuch_client_indexing_cli_choices indexing_cli_choices = { };
 const notmuch_opt_desc_t  notmuch_shared_indexing_options [] = {
-    { .opt_bool = &indexing_cli_choices.try_decrypt,
-      .present = &indexing_cli_choices.try_decrypt_set,
-      .name = "try-decrypt" },
+    { .opt_keyword = &indexing_cli_choices.decrypt_policy,
+      .present = &indexing_cli_choices.decrypt_policy_set, .keywords =
+      (notmuch_keyword_t []){ { "false", NOTMUCH_DECRYPT_FALSE },
+			      { "true", NOTMUCH_DECRYPT_TRUE },
+			      { "auto", NOTMUCH_DECRYPT_AUTO },
+			      { "nostash", NOTMUCH_DECRYPT_NOSTASH },
+			      { 0, 0 } },
+      .name = "decrypt" },
     { }
 };
 
@@ -111,21 +116,21 @@ notmuch_process_shared_indexing_options (notmuch_database_t *notmuch, g_mime_3_u
 {
     if (indexing_cli_choices.opts == NULL)
 	indexing_cli_choices.opts = notmuch_database_get_default_indexopts (notmuch);
-    if (indexing_cli_choices.try_decrypt_set) {
+    if (indexing_cli_choices.decrypt_policy_set) {
 	notmuch_status_t status;
 	if (indexing_cli_choices.opts == NULL)
 	    return NOTMUCH_STATUS_OUT_OF_MEMORY;
-	status = notmuch_indexopts_set_try_decrypt (indexing_cli_choices.opts, indexing_cli_choices.try_decrypt);
+	status = notmuch_indexopts_set_decrypt_policy (indexing_cli_choices.opts, indexing_cli_choices.decrypt_policy);
 	if (status != NOTMUCH_STATUS_SUCCESS) {
-	    fprintf (stderr, "Error: Failed to set try_decrypt to %s. (%s)\n",
-		     indexing_cli_choices.try_decrypt ? "True" : "False", notmuch_status_to_string (status));
+	    fprintf (stderr, "Error: Failed to set index decryption policy to %d. (%s)\n",
+		     indexing_cli_choices.decrypt_policy, notmuch_status_to_string (status));
 	    notmuch_indexopts_destroy (indexing_cli_choices.opts);
 	    indexing_cli_choices.opts = NULL;
 	    return status;
 	}
     }
 #if (GMIME_MAJOR_VERSION < 3)
-    if (indexing_cli_choices.opts && notmuch_indexopts_get_try_decrypt (indexing_cli_choices.opts)) {
+    if (indexing_cli_choices.opts && notmuch_indexopts_get_decrypt_policy (indexing_cli_choices.opts) != NOTMUCH_DECRYPT_FALSE) {
 	const char* gpg_path = notmuch_config_get_crypto_gpg_path (config);
 	if (gpg_path && strcmp(gpg_path, "gpg"))
 	    fprintf (stderr, "Warning: deprecated crypto.gpg_path is set to '%s'\n"
@@ -167,6 +172,10 @@ static command_t commands[] = {
       "Re-index all messages matching the search terms." },
     { "config", notmuch_config_command, NOTMUCH_CONFIG_OPEN,
       "Get or set settings in the notmuch configuration file." },
+#if WITH_EMACS
+    { "emacs-mua", NULL, 0,
+      "send mail with notmuch and emacs." },
+#endif
     { "help", notmuch_help_command, NOTMUCH_CONFIG_CREATE, /* create but don't save config */
       "This message, or more detailed help for the named command." }
 };
@@ -181,6 +190,8 @@ static help_topic_t help_topics[] = {
       "Common search term syntax." },
     { "hooks",
       "Hooks that will be run before or after certain commands." },
+    { "properties",
+      "Message property conventions and documentation." },
 };
 
 static command_t *
@@ -480,7 +491,8 @@ main (int argc, char *argv[])
     notmuch_process_shared_options (command_name);
 
     command = find_command (command_name);
-    if (!command) {
+    /* if command->function is NULL, try external command */
+    if (!command || !command->function) {
 	/* This won't return if the external command is found. */
 	if (try_external_command(argv + opt_index))
 	    fprintf (stderr, "Error: Unknown command '%s' (see \"notmuch help\")\n",

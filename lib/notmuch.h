@@ -2234,6 +2234,18 @@ notmuch_indexopts_t *
 notmuch_database_get_default_indexopts (notmuch_database_t *db);
 
 /**
+ * Stating a policy about how to decrypt messages.
+ *
+ * See index.decrypt in notmuch-config(1) for more details.
+ */
+typedef enum {
+    NOTMUCH_DECRYPT_FALSE,
+    NOTMUCH_DECRYPT_TRUE,
+    NOTMUCH_DECRYPT_AUTO,
+    NOTMUCH_DECRYPT_NOSTASH,
+} notmuch_decryption_policy_t;
+
+/**
  * Specify whether to decrypt encrypted parts while indexing.
  *
  * Be aware that the index is likely sufficient to reconstruct the
@@ -2244,17 +2256,17 @@ notmuch_database_get_default_indexopts (notmuch_database_t *db);
  * @since libnotmuch 5.1 (notmuch 0.26)
  */
 notmuch_status_t
-notmuch_indexopts_set_try_decrypt (notmuch_indexopts_t *indexopts,
-				   notmuch_bool_t try_decrypt);
+notmuch_indexopts_set_decrypt_policy (notmuch_indexopts_t *indexopts,
+				      notmuch_decryption_policy_t decrypt_policy);
 
 /**
  * Return whether to decrypt encrypted parts while indexing.
- * see notmuch_indexopts_set_try_decrypt.
+ * see notmuch_indexopts_set_decrypt_policy.
  *
  * @since libnotmuch 5.1 (notmuch 0.26)
  */
-notmuch_bool_t
-notmuch_indexopts_get_try_decrypt (const notmuch_indexopts_t *indexopts);
+notmuch_decryption_policy_t
+notmuch_indexopts_get_decrypt_policy (const notmuch_indexopts_t *indexopts);
 
 /**
  * Destroy a notmuch_indexopts_t object.

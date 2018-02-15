@@ -20,9 +20,9 @@ src="{{sprefix}}/js/jquery-ui-1.8.21.custom.min.js"></script>
 <form action="{{prefix}}/search/" method="GET" data-ajax="false">
 <label for="terms">Terms</label><input id="terms" name="terms">
 <label for="after">After</label><input id="after"
-name="after"><input id="afters" name="afters">
+name="after"><input type="hidden" id="afters" name="afters">
 <label for="before">Before</label><input id="before"
-name="before"><input id="befores" name="befores">
+name="before"><input id="befores" type="hidden" name="befores">
 <input type="submit" name="submit" id="submit" value="Search">
 </form>
 {% endblock searchform %}
