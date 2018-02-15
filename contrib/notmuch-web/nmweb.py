@@ -31,9 +31,14 @@ safe_tags = bleach.sanitizer.ALLOWED_TAGS + \
 linkify_plaintext = True # delays page load by about 0.02s of 0.20s budget
 show_thread_nav = True   # delays page load by about 0.04s of 0.20s budget
 
-prefix = "https://nmweb.evenmere.org"
-webprefix = prefix + "/static"
-cachedir = "static/cache" # special for webpy server; changeable if using your own
+prefix = os.environ.get('NMWEB_PREFIX', "https://nmweb.evenmere.org")
+webprefix = os.environ.get('NMWEB_STATIC', prefix + "/static")
+cachedir = os.environ.get('NMWEB_CACHE', "static/cache") # special for webpy server; changeable if using your own
+
+if 'NMWEB_DEBUG' in os.environ:
+  web.config.debug = True
+else:
+  web.config.debug = False
 
 # End of config options
 
@@ -347,7 +352,6 @@ def link_to_cached_file(part, mid, counter):
     return (filename, None)
 
 if __name__ == '__main__':
-  web.config.debug = True
   app = web.application(urls, globals())
   if use_bjoern:
     bjoern.run(app.wsgifunc(), "127.0.0.1", 8080)
